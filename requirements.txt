@@ -1,0 +1,8 @@
+# Core GUI framework
+PyQt6>=6.4.0
+
+# System metrics
+psutil>=5.9.0
+
+# PDF export (optional but recommended)
+reportlab>=4.0.0

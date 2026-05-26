@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="HWSonnet — Modern hardware information and monitoring tool for Linux. Supports Arch Linux, featuring live CPU, GPU, RAM, sensor and network monitoring."/>
+<title>HWSonnet — Modern Hardware Info for Linux</title>
+<link rel="icon" type="image/svg+xml" href="../assets/icon.svg"/>
+<style>
+:root {
+  --bg:       #0a0e14;
+  --surf:     #0f1520;
+  --surf2:    #151d2e;
+  --surf3:    #1a2438;
+  --border:   #1e2d45;
+  --blight:   #2a3f5f;
+  --text:     #e8eef8;
+  --sub:      #7a91b0;
+  --muted:    #4a5f7a;
+  --blue:     #4d9eff;
+  --green:    #2ea84c;
+  --yellow:   #e8a020;
+  --red:      #e84545;
+  --purple:   #a87aff;
+  --teal:     #20c0a0;
+  --orange:   #e06030;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Typography ─────────────────────────────────────────────────────── */
+h1, h2, h3 { font-weight: 700; letter-spacing: -0.03em; }
+h1 { font-size: clamp(2.4rem, 6vw, 4rem); }
+h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+h3 { font-size: 1.1rem; }
+p  { color: var(--sub); }
+a  { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre {
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.9em;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+section { padding: 80px 0; }
+
+/* ── Nav ────────────────────────────────────────────────────────────── */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,14,20,0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 0;
+}
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.nav-logo svg { width: 32px; height: 32px; }
+.nav-links { display: flex; gap: 28px; }
+.nav-links a { color: var(--sub); font-size: 14px; transition: color 0.2s; }
+.nav-links a:hover { color: var(--text); text-decoration: none; }
+.nav-cta {
+  background: var(--blue);
+  color: #fff;
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s;
+}
+.nav-cta:hover { background: #3a88e8; text-decoration: none; transform: translateY(-1px); }
+
+/* ── Hero ───────────────────────────────────────────────────────────── */
+.hero {
+  padding: 100px 0 80px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -200px; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 600px;
+  background: radial-gradient(ellipse at center,
+    rgba(77,158,255,0.12) 0%,
+    rgba(168,122,255,0.05) 40%,
+    transparent 70%);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(77,158,255,0.1);
+  border: 1px solid rgba(77,158,255,0.3);
+  color: var(--blue);
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 28px;
+}
+.hero-badge::before { content: "⬡"; }
+.hero h1 { margin-bottom: 20px; }
+.hero h1 span {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font-size: 1.2rem;
+  color: var(--sub);
+  max-width: 580px;
+  margin: 0 auto 40px;
+}
+.hero-btns {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #1e6fcc, #4d9eff);
+  color: #fff;
+  box-shadow: 0 0 30px rgba(77,158,255,0.25);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2a7add, #5aabff);
+  box-shadow: 0 0 40px rgba(77,158,255,0.4);
+  transform: translateY(-2px);
+  text-decoration: none;
+  color: #fff;
+}
+.btn-secondary {
+  background: var(--surf2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  background: var(--surf3);
+  border-color: var(--blight);
+  transform: translateY(-2px);
+  text-decoration: none;
+  color: var(--text);
+}
+
+/* ── App Preview (CSS mockup) ───────────────────────────────────────── */
+.preview-wrap {
+  max-width: 900px;
+  margin: 60px auto 0;
+  position: relative;
+}
+.preview-glow {
+  position: absolute;
+  inset: -30px;
+  background: radial-gradient(ellipse at center,
+    rgba(77,158,255,0.15) 0%, transparent 70%);
+  pointer-events: none;
+  border-radius: 30px;
+}
+.app-window {
+  background: var(--surf);
+  border: 1px solid var(--blight);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 30px 80px rgba(0,0,0,0.6),
+    0 0 60px rgba(77,158,255,0.1);
+}
+.app-titlebar {
+  background: var(--surf2);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.titlebar-dots { display: flex; gap: 7px; }
+.titlebar-dots span {
+  width: 12px; height: 12px; border-radius: 50%;
+}
+.dot-red   { background: #e84545; }
+.dot-yel   { background: #e8a020; }
+.dot-grn   { background: #2ea84c; }
+.titlebar-title {
+  flex: 1; text-align: center;
+  font-size: 13px; color: var(--sub);
+}
+.app-body {
+  display: flex;
+  height: 440px;
+}
+.app-sidebar {
+  width: 180px;
+  background: linear-gradient(to right, #0a0f1a, var(--surf));
+  border-right: 1px solid var(--border);
+  padding: 12px 0;
+  flex-shrink: 0;
+}
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 20px;
+  color: var(--blue);
+  font-weight: 700;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--sub);
+  margin: 1px 6px;
+  border-radius: 8px;
+  cursor: default;
+  transition: all 0.15s;
+}
+.sb-item.active {
+  background: rgba(77,158,255,0.12);
+  color: var(--blue);
+  font-weight: 600;
+  border-left: 3px solid var(--blue);
+  padding-left: 13px;
+}
+.app-content {
+  flex: 1;
+  padding: 20px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.page-title {
+  font-size: 20px; font-weight: 700; margin-bottom: 18px;
+}
+.gauges-row {
+  display: flex; gap: 16px; margin-bottom: 18px;
+}
+.gauge-box {
+  flex: 1;
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+.gauge-circle {
+  width: 70px; height: 70px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--c, var(--blue)) calc(var(--p,60) * 1%),
+    var(--surf3) 0
+  );
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.gauge-circle::before {
+  content: "";
+  position: absolute;
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  background: var(--surf);
+}
+.gauge-val {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  font-weight: 700;
+}
+.gauge-lbl { font-size: 11px; color: var(--sub); }
+.mini-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.mini-card {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.mini-card-title { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+.mini-card-val   { font-size: 16px; font-weight: 700; }
+.chart-box {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  height: 90px;
+  overflow: hidden;
+  position: relative;
+}
+.chart-title { font-size: 10px; color: var(--sub); margin-bottom: 6px; }
+.chart-line {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  right: 14px;
+  height: 50px;
+}
+.chart-line svg { width: 100%; height: 100%; }
+
+/* ── Features ───────────────────────────────────────────────────────── */
+.features { background: var(--surf); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.section-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 12px;
+}
+.section-title { margin-bottom: 14px; }
+.section-sub { color: var(--sub); margin-bottom: 48px; max-width: 560px; }
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+.feature-card {
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.feature-card:hover {
+  border-color: var(--blight);
+  transform: translateY(-3px);
+}
+.feature-icon {
+  font-size: 28px;
+  margin-bottom: 14px;
+  display: block;
+}
+.feature-card h3 { margin-bottom: 8px; font-size: 15px; }
+.feature-card p  { font-size: 13px; color: var(--sub); }
+
+/* ── Install ────────────────────────────────────────────────────────── */
+.install { }
+.install-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+.install-card {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+}
+.install-card h3 {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px; font-size: 16px;
+}
+.install-badge {
+  font-size: 11px; font-weight: 600;
+  background: rgba(77,158,255,0.1);
+  border: 1px solid rgba(77,158,255,0.25);
+  color: var(--blue);
+  padding: 2px 8px; border-radius: 6px;
+}
+.install-badge.aur   { background: rgba(46,168,76,0.1); border-color: rgba(46,168,76,0.25); color: var(--green); }
+.install-badge.man   { background: rgba(168,122,255,0.1); border-color: rgba(168,122,255,0.25); color: var(--purple); }
+pre.code-block {
+  background: var(--surf3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 13px;
+  color: var(--text);
+  overflow-x: auto;
+  margin-bottom: 12px;
+  white-space: pre;
+}
+.code-comment { color: var(--muted); }
+.code-cmd     { color: var(--text); }
+.code-str     { color: var(--green); }
+.code-flag    { color: var(--blue); }
+
+/* ── Stats bar ──────────────────────────────────────────────────────── */
+.stats-bar {
+  background: var(--surf);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 40px 0;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  text-align: center;
+}
+.stat-item { padding: 0 20px; }
+.stat-item + .stat-item { border-left: 1px solid var(--border); }
+.stat-num {
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.stat-lbl { font-size: 13px; color: var(--sub); }
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+footer {
+  background: var(--surf);
+  border-top: 1px solid var(--border);
+  padding: 40px 0;
+}
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.footer-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { color: var(--sub); font-size: 14px; transition: color 0.2s; }
+.footer-links a:hover { color: var(--text); text-decoration: none; }
+.footer-copy { color: var(--muted); font-size: 13px; }
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .app-sidebar { display: none; }
+  .nav-links { display: none; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stat-item + .stat-item { border-left: none; }
+  .stat-item:nth-child(3), .stat-item:nth-child(4) { border-top: 1px solid var(--border); }
+  .gauges-row { gap: 8px; }
+  .gauge-box  { padding: 10px 8px; }
+  .mini-cards { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <rect width="64" height="64" rx="10" fill="#0f1520"/>
+        <path d="M 10 46 A 24 24 0 1 1 54 46" fill="none" stroke="#1a2438" stroke-width="6" stroke-linecap="round"/>
+        <path d="M 10 46 A 24 24 0 1 1 54 46" fill="none" stroke="#4d9eff" stroke-width="6" stroke-linecap="round"
+              stroke-dasharray="118 151" opacity="0.9"/>
+        <text x="32" y="39" text-anchor="middle" font-size="16" font-weight="bold" fill="#4d9eff">⬡</text>
+      </svg>
+      HWSonnet
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/Varionetzwerk/hwsonnet">GitHub</a>
+      <a href="https://aur.archlinux.org/packages/hwsonnet">AUR</a>
+    </div>
+    <a class="btn nav-cta" href="https://github.com/Varionetzwerk/hwsonnet/releases">
+      Download
+    </a>
+  </div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">v1.0 — Arch Linux Optimized</div>
+    <h1>Hardware Info.<br><span>Reimagined for Linux.</span></h1>
+    <p class="hero-sub">
+      Real-time CPU, GPU, RAM, sensor and network monitoring — faster, cleaner
+      and more modern than anything else on Linux.
+    </p>
+    <div class="hero-btns">
+      <a class="btn btn-primary" href="#install">
+        ⬇ Install via yay
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/Varionetzwerk/hwsonnet">
+        View on GitHub
+      </a>
+    </div>
+
+    <!-- App preview mockup -->
+    <div class="preview-wrap">
+      <div class="preview-glow"></div>
+      <div class="app-window">
+        <div class="app-titlebar">
+          <div class="titlebar-dots">
+            <span class="dot-red"></span>
+            <span class="dot-yel"></span>
+            <span class="dot-grn"></span>
+          </div>
+          <div class="titlebar-title">HWSonnet — System Information</div>
+        </div>
+        <div class="app-body">
+          <!-- Sidebar -->
+          <div class="app-sidebar">
+            <div class="sidebar-logo">⬡ HWSonnet</div>
+            <div class="sb-item active">⊞ Overview</div>
+            <div class="sb-item">⬡ CPU</div>
+            <div class="sb-item">▦ GPU</div>
+            <div class="sb-item">≡ RAM</div>
+            <div class="sb-item">⊟ Storage</div>
+            <div class="sb-item">⊕ Network</div>
+            <div class="sb-item">◎ Sensors</div>
+            <div class="sb-item">⚙ System</div>
+          </div>
+          <!-- Content -->
+          <div class="app-content">
+            <div class="page-title">Overview</div>
+            <div class="gauges-row">
+              <div class="gauge-box">
+                <div class="gauge-circle" style="--p:42;--c:#4d9eff"><div class="gauge-val">42%</div></div>
+                <div class="gauge-lbl">CPU</div>
+              </div>
+              <div class="gauge-box">
+                <div class="gauge-circle" style="--p:18;--c:#2ea84c"><div class="gauge-val">18%</div></div>
+                <div class="gauge-lbl">GPU</div>
+              </div>
+              <div class="gauge-box">
+                <div class="gauge-circle" style="--p:67;--c:#a87aff"><div class="gauge-val">67%</div></div>
+                <div class="gauge-lbl">RAM</div>
+              </div>
+              <div class="gauge-box">
+                <div class="gauge-circle" style="--p:58;--c:#e84545"><div class="gauge-val">58°C</div></div>
+                <div class="gauge-lbl">Temp</div>
+              </div>
+            </div>
+            <div class="mini-cards">
+              <div class="mini-card">
+                <div class="mini-card-title">CPU</div>
+                <div class="mini-card-val" style="font-size:12px;color:#4d9eff">Ryzen 5 7600X</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-card-title">RAM Total</div>
+                <div class="mini-card-val">32.0 GiB</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-card-title">Uptime</div>
+                <div class="mini-card-val" style="color:#e8a020">6h 32m</div>
+              </div>
+            </div>
+            <div class="chart-box">
+              <div class="chart-title">CPU Usage  <span style="color:#4d9eff;font-weight:600">42.0%</span></div>
+              <div class="chart-line">
+                <svg viewBox="0 0 300 50" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#4d9eff" stop-opacity="0.3"/>
+                      <stop offset="100%" stop-color="#4d9eff" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M0,40 C20,38 30,30 50,28 C70,26 80,35 100,32 C120,29 130,20 150,18 C170,16 180,25 200,22 C220,19 230,12 250,10 C265,8 280,15 300,21" fill="url(#cg)" stroke="none"/>
+                  <path d="M0,40 C20,38 30,30 50,28 C70,26 80,35 100,32 C120,29 130,20 150,18 C170,16 180,25 200,22 C220,19 230,12 250,10 C265,8 280,15 300,21" fill="none" stroke="#4d9eff" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Stats ────────────────────────────────────────────────────────────── -->
+<div class="stats-bar">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-num">8</div>
+        <div class="stat-lbl">Monitoring Views</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">1.5s</div>
+        <div class="stat-lbl">Refresh Rate</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">0</div>
+        <div class="stat-lbl">External Chart Libs</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">3</div>
+        <div class="stat-lbl">GPU Vendors Supported</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Features ─────────────────────────────────────────────────────────── -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-eyebrow">What's Inside</div>
+    <h2 class="section-title">Everything you need to know<br>about your hardware</h2>
+    <p class="section-sub">
+      HWSonnet reads directly from <code>/proc</code>, <code>/sys</code> and native Linux APIs.
+      No bloat, no guessing — raw data from the kernel.
+    </p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">⬡</span>
+        <h3>CPU Monitoring</h3>
+        <p>Live per-core usage bars, frequency tracking, temperature gauges and full cache hierarchy — using <code>psutil</code> and <code>/proc/cpuinfo</code>.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">▦</span>
+        <h3>GPU Support</h3>
+        <p>NVIDIA via <code>nvidia-smi</code>, AMD via <code>/sys/class/drm</code>, Intel GPU detection. VRAM usage, utilization, temperature and power draw.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">≡</span>
+        <h3>Memory Details</h3>
+        <p>Real-time RAM and swap usage with live charts. RAM type, speed, and slot info via <code>dmidecode</code>.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⊟</span>
+        <h3>Storage &amp; SMART</h3>
+        <p>SSD, HDD and NVMe detection with <code>lsblk</code>. SMART health status, temperature, live read/write speed per device.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⊕</span>
+        <h3>Network Interfaces</h3>
+        <p>All network adapters with IPv4/IPv6, WiFi SSID and signal, and real-time upload/download bandwidth charts.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">◎</span>
+        <h3>Hardware Sensors</h3>
+        <p>Temperatures, fan RPM and battery status via <code>lm_sensors</code> and <code>/sys/class/hwmon</code>. Color-coded critical warnings.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚙</span>
+        <h3>System Information</h3>
+        <p>OS, kernel, desktop environment, shell, uptime, mainboard, BIOS info and installed package counts for pacman and Flatpak.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📤</span>
+        <h3>Export Reports</h3>
+        <p>Export complete hardware reports as <strong>JSON</strong>, <strong>TXT</strong> or <strong>PDF</strong>. Perfect for system documentation or support tickets.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎨</span>
+        <h3>Custom Charts</h3>
+        <p>Smooth Catmull-Rom spline charts drawn with <code>QPainter</code>. No external chart library dependency.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Install ───────────────────────────────────────────────────────────── -->
+<section class="install" id="install">
+  <div class="container">
+    <div class="section-eyebrow">Get Started</div>
+    <h2 class="section-title">Install HWSonnet</h2>
+    <p class="section-sub">
+      Choose your preferred installation method. The AUR package handles all dependencies automatically.
+    </p>
+    <div class="install-methods">
+
+      <div class="install-card">
+        <h3>
+          AUR (Recommended)
+          <span class="install-badge aur">yay</span>
+        </h3>
+        <p style="font-size:13px;color:var(--sub);margin-bottom:14px">
+          Install with any AUR helper. All dependencies are resolved automatically.
+        </p>
+        <pre class="code-block"><span class="code-comment"># Install via yay</span>
+<span class="code-cmd">yay -S hwsonnet</span>
+
+<span class="code-comment"># Or with paru</span>
+<span class="code-cmd">paru -S hwsonnet</span></pre>
+        <pre class="code-block"><span class="code-comment"># Launch</span>
+<span class="code-cmd">hwsonnet</span></pre>
+      </div>
+
+      <div class="install-card">
+        <h3>
+          Manual Install
+          <span class="install-badge man">git</span>
+        </h3>
+        <p style="font-size:13px;color:var(--sub);margin-bottom:14px">
+          Clone and run the install script — creates a desktop entry and launcher.
+        </p>
+        <pre class="code-block"><span class="code-cmd">git clone https://github.com/Varionetzwerk/hwsonnet</span>
+<span class="code-cmd">cd hwsonnet</span>
+<span class="code-cmd">./install.sh</span></pre>
+        <pre class="code-block"><span class="code-comment"># Run directly</span>
+<span class="code-cmd">python main.py</span></pre>
+      </div>
+
+      <div class="install-card">
+        <h3>
+          Dependencies
+          <span class="install-badge">pacman</span>
+        </h3>
+        <p style="font-size:13px;color:var(--sub);margin-bottom:14px">
+          Core dependencies + optional packages for full feature access.
+        </p>
+        <pre class="code-block"><span class="code-comment"># Required</span>
+<span class="code-cmd">sudo pacman -S python python-pyqt6 python-psutil</span>
+
+<span class="code-comment"># Optional (enables more features)</span>
+<span class="code-cmd">sudo pacman -S lm_sensors smartmontools</span>
+<span class="code-cmd">sudo pacman -S mesa-utils nvidia-utils</span></pre>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo">⬡ HWSonnet</div>
+      <div class="footer-links">
+        <a href="https://github.com/Varionetzwerk/hwsonnet">GitHub</a>
+        <a href="https://aur.archlinux.org/packages/hwsonnet">AUR</a>
+        <a href="https://github.com/Varionetzwerk/hwsonnet/issues">Issues</a>
+        <a href="https://github.com/Varionetzwerk/hwsonnet/releases">Releases</a>
+      </div>
+      <div class="footer-copy">MIT License · Built with Python 3 + PyQt6</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

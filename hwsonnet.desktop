@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=HWSonnet
+GenericName=System Information Tool
+Comment=Modern hardware information and monitoring tool for Linux
+Exec=hwsonnet
+Icon=hwsonnet
+Terminal=false
+Type=Application
+Categories=System;Monitor;
+Keywords=hardware;system;cpu;gpu;ram;monitor;info;temperature;
+StartupWMClass=HWSonnet
+StartupNotify=true
