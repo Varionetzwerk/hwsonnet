@@ -6,25 +6,9 @@ Fast, beautiful, and accurate. Think HWiNFO meets Neofetch, with a clean dark UI
 
 ---
 
-## Screenshots (UI Layout)
+## Screenshots
 
-```
-┌─────────┬──────────────────────────────────────────────────────────────┐
-│ ⬡ HWSon │  Overview                           ⟳ Live  [JSON] [TXT] [PDF] │
-│─────────│──────────────────────────────────────────────────────────────│
-│ ⊞ Over  │                                                              │
-│ ⬡ CPU   │  [ CPU Gauge ]  [ GPU Gauge ]  [ RAM Gauge ]  [ Temp Gauge ]  │
-│ ▦ GPU   │                                                              │
-│ ≡ RAM   │  ┌──────────────┐ ┌──────────────┐ ┌──────┐ ┌────────────┐  │
-│ ⊟ Store │  │ CPU: i7-…    │ │ GPU: RTX …   │ │ 16GB │ │ 3.6 GHz    │  │
-│ ⊕ Net   │  └──────────────┘ └──────────────┘ └──────┘ └────────────┘  │
-│ ◎ Sens  │                                                              │
-│ ⚙ Sys   │  ┌─────────────────────┐  ┌─────────────────────┐           │
-│         │  │   CPU Usage Chart   │  │   RAM Usage Chart   │           │
-│         │  │   ___/\___/\        │  │   /‾‾\___/‾\        │           │
-│  ◀      │  └─────────────────────┘  └─────────────────────┘           │
-└─────────┴──────────────────────────────────────────────────────────────┘
-```
+![HWSonnet Übersicht](assets/screenshots/overview.png)
 
 ---
 
