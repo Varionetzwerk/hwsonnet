@@ -11,7 +11,7 @@ from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QStackedWidget, QStatusBar, QLabel, QFileDialog,
-    QMessageBox, QPushButton,
+    QMessageBox, QPushButton, QMenuBar,
 )
 
 from src.core.collectors.cpu_collector import CPUCollector
@@ -59,6 +59,92 @@ class _ToolbarButton(QPushButton):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
 
+class _WindowButton(QPushButton):
+    """Minimize / maximize / close button for the custom title bar."""
+
+    def __init__(self, glyph: str, danger: bool = False, parent: QWidget | None = None) -> None:
+        super().__init__(glyph, parent)
+        self.setFixedSize(44, 28)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        hover_bg = "#e81123" if danger else SURFACE
+        hover_fg = "white"
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                color: {TEXT_SUB};
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+            }}
+            QPushButton:hover {{
+                background: {hover_bg};
+                color: {hover_fg};
+            }}
+        """)
+
+
+class _TitleBar(QWidget):
+    """Custom frameless-window title bar: menu, title, window controls."""
+
+    def __init__(self, window: "MainWindow") -> None:
+        super().__init__(window)
+        self._win = window
+        self.setFixedHeight(40)
+        self.setStyleSheet(
+            f"background: {SURFACE}; border-bottom: 1px solid {BORDER};"
+        )
+
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(10, 0, 8, 0)
+        lay.setSpacing(8)
+
+        self.menubar = QMenuBar()
+        self.menubar.setStyleSheet(
+            f"QMenuBar {{ background: transparent; border: none; color: {TEXT_SUB}; }}"
+            f"QMenuBar::item {{ padding: 4px 10px; border-radius: 4px; }}"
+            f"QMenuBar::item:selected {{ background: {ACCENT}33; color: white; }}"
+        )
+        lay.addWidget(self.menubar)
+
+        lay.addStretch()
+        title = QLabel("HWSonnet — System Information")
+        title.setStyleSheet(
+            f"color: {TEXT_SUB}; font-size: 12px; font-weight: 600; background: transparent;"
+        )
+        lay.addWidget(title)
+        lay.addStretch()
+
+        self._btn_min = _WindowButton("–")
+        self._btn_max = _WindowButton("☐")
+        self._btn_close = _WindowButton("✕", danger=True)
+        self._btn_min.clicked.connect(window.showMinimized)
+        self._btn_max.clicked.connect(self.toggle_max_restore)
+        self._btn_close.clicked.connect(window.close)
+        for btn in (self._btn_min, self._btn_max, self._btn_close):
+            lay.addWidget(btn)
+
+    def toggle_max_restore(self) -> None:
+        if self._win.isMaximized():
+            self._win.showNormal()
+            self._btn_max.setText("☐")
+        else:
+            self._win.showMaximized()
+            self._btn_max.setText("❐")
+
+    # ── Drag to move (uses compositor — works on Wayland & X11) ────────── #
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            handle = self._win.windowHandle()
+            if handle is not None:
+                handle.startSystemMove()
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.toggle_max_restore()
+
+
 class MainWindow(QMainWindow):
     """HWSonnet main application window."""
 
@@ -76,6 +162,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("HWSonnet — System Information")
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(1280, 800)
         self.setMinimumSize(900, 600)
 
@@ -102,9 +189,19 @@ class MainWindow(QMainWindow):
     def _build_ui(self) -> None:
         central = QWidget()
         self.setCentralWidget(central)
-        root = QHBoxLayout(central)
+        outer = QVBoxLayout(central)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # Custom title bar (frameless window chrome)
+        self._titlebar = _TitleBar(self)
+        outer.addWidget(self._titlebar)
+
+        body = QWidget()
+        root = QHBoxLayout(body)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
+        outer.addWidget(body, 1)
 
         self._sidebar = Sidebar()
         self._sidebar.page_changed.connect(self._switch_page)
@@ -167,22 +264,20 @@ class MainWindow(QMainWindow):
         # Status bar
         sb = QStatusBar()
         sb.setStyleSheet(f"background: {SURFACE}; color: {TEXT_SUB}; font-size: 11px;")
+        sb.setSizeGripEnabled(True)  # allows resizing the frameless window
         self.setStatusBar(sb)
-        sb.addWidget(QLabel("HWSonnet v1.0  ·  Arch Linux Optimized"))
+        sb.addWidget(QLabel("HWSonnet v1.0  ·  optimized for Arch Linux"))
         self._update_time_label = QLabel("")
         sb.addPermanentWidget(self._update_time_label)
 
     def _build_menu(self) -> None:
-        mb = self.menuBar()
-        mb.setStyleSheet(
-            f"background: {SURFACE}; color: {TEXT_SUB}; border-bottom: 1px solid {BORDER};"
-        )
+        mb = self._titlebar.menubar
 
         file_menu = mb.addMenu("&File")
         for label, shortcut, fmt in (
-            ("Export &JSON…", "Ctrl+S", "json"),
-            ("Export &TXT…", "", "txt"),
-            ("Export &PDF…", "", "pdf"),
+            ("Export as &JSON…", "Ctrl+S", "json"),
+            ("Export as &TXT…", "", "txt"),
+            ("Export as &PDF…", "", "pdf"),
         ):
             act = QAction(label, self)
             if shortcut:
@@ -203,7 +298,7 @@ class MainWindow(QMainWindow):
             view_menu.addAction(act)
 
         help_menu = mb.addMenu("&Help")
-        act_about = QAction("&About HWSonnet", self)
+        act_about = QAction("About &HWSonnet", self)
         act_about.triggered.connect(self._show_about)
         help_menu.addAction(act_about)
 
@@ -248,7 +343,7 @@ class MainWindow(QMainWindow):
         self._dispatch_update(name, result)
 
         if self._pending_static == 0:
-            self._status_indicator.setText("● Live")
+            self._status_indicator.setText("● Active")
             self._status_indicator.setStyleSheet(
                 "color: #3fb950; font-size: 12px; background: transparent;"
             )
@@ -315,7 +410,7 @@ class MainWindow(QMainWindow):
         flat = self._flatten_data()
 
         ok = {"json": export_json, "txt": export_txt, "pdf": export_pdf}[fmt](flat, path)
-        msg = f"Exported to:\n{path}" if ok else "Export failed — check the log."
+        msg = f"Exported to:\n{path}" if ok else "Export failed — see log."
         QMessageBox.information(self, "Export", msg)
 
     def _flatten_data(self) -> dict[str, Any]:

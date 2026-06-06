@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import re
+import socket
 import subprocess
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
 import psutil
@@ -40,7 +43,6 @@ class NetworkCollector:
 
     def __init__(self) -> None:
         self._prev_io: dict[str, tuple[int, int]] = {}
-        import socket
         try:
             self._hostname = socket.gethostname()
         except Exception:
@@ -85,10 +87,9 @@ class NetworkCollector:
 
                 if name in addrs:
                     for addr in addrs[name]:
-                        import socket as _socket
-                        if addr.family == _socket.AF_INET:
+                        if addr.family == socket.AF_INET:
                             iface.ipv4 = addr.address
-                        elif addr.family == _socket.AF_INET6:
+                        elif addr.family == socket.AF_INET6:
                             iface.ipv6 = addr.address.split("%")[0]
 
                 if iface.is_wireless:
@@ -106,18 +107,17 @@ class NetworkCollector:
         try:
             addrs = psutil.net_if_addrs()
             stats = psutil.net_if_stats()
-            import socket as _socket
 
             for name, addr_list in addrs.items():
                 if name == "lo":
                     continue
                 iface = NetworkInterface(name=name)
                 for addr in addr_list:
-                    if addr.family == _socket.AF_PACKET:
+                    if addr.family == socket.AF_PACKET:
                         iface.mac = addr.address
-                    elif addr.family == _socket.AF_INET:
+                    elif addr.family == socket.AF_INET:
                         iface.ipv4 = addr.address
-                    elif addr.family == _socket.AF_INET6:
+                    elif addr.family == socket.AF_INET6:
                         iface.ipv6 = addr.address.split("%")[0]
                 if name in stats:
                     iface.is_up = stats[name].isup
@@ -131,7 +131,6 @@ class NetworkCollector:
         return interfaces
 
     def _is_wireless(self, name: str) -> bool:
-        from pathlib import Path
         return Path(f"/sys/class/net/{name}/wireless").exists()
 
     def _update_wifi(self, iface: NetworkInterface) -> None:
@@ -147,7 +146,6 @@ class NetworkCollector:
                     ssid = line.split("ESSID:")[-1].strip().strip('"')
                     iface.ssid = ssid if ssid != "off/any" else "N/A"
                 if "Signal level=" in line:
-                    import re
                     m = re.search(r"Signal level=(-?\d+)", line)
                     if m:
                         iface.signal_dbm = int(m.group(1))

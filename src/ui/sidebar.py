@@ -17,14 +17,14 @@ from src.ui.styles.dark_theme import (
 )
 
 NAV_ITEMS = [
-    ("overview", "⊞", "Overview"),
-    ("cpu",      "⬡", "CPU"),
-    ("gpu",      "▦", "GPU"),
-    ("ram",      "≡", "RAM"),
-    ("storage",  "⊟", "Storage"),
-    ("network",  "⊕", "Network"),
-    ("sensors",  "◎", "Sensors"),
-    ("system",   "⚙", "System"),
+    ("overview", "•", "Overview"),
+    ("cpu",      "•", "CPU"),
+    ("gpu",      "•", "GPU"),
+    ("ram",      "•", "RAM"),
+    ("storage",  "•", "Storage"),
+    ("network",  "•", "Network"),
+    ("sensors",  "•", "Sensors"),
+    ("system",   "•", "System"),
 ]
 
 
@@ -126,13 +126,13 @@ class _NavButton(QWidget):
         )
         p.setPen(QPen(icon_col))
         font = QFont()
-        font.setPointSizeF(15)
+        font.setPointSizeF(16)
         p.setFont(font)
 
         if self._collapsed:
             p.drawText(QRectF(0, 0, w, h), Qt.AlignmentFlag.AlignCenter, self._icon)
         else:
-            p.drawText(QRectF(16, 0, 28, h),
+            p.drawText(QRectF(18, 0, 20, h),
                        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                        self._icon)
             # Label
@@ -171,7 +171,7 @@ class Sidebar(QWidget):
 
         # Nav buttons
         nav_wrap = QWidget()
-        nav_wrap.setStyleSheet(f"background: transparent;")
+        nav_wrap.setStyleSheet("background: transparent;")
         self._nav_layout = QVBoxLayout(nav_wrap)
         self._nav_layout.setContentsMargins(0, 8, 0, 8)
         self._nav_layout.setSpacing(2)
@@ -252,40 +252,19 @@ class _LogoHeader(QWidget):
         p.setPen(QPen(QColor(BORDER), 1))
         p.drawLine(0, h - 1, w, h - 1)
 
-        # Logo mark (hexagon-ish)
-        p.setPen(Qt.PenStyle.NoPen)
-        accent = QColor(ACCENT)
-        glow = QColor(ACCENT)
-        glow.setAlpha(30)
-        p.setBrush(glow)
-        p.drawEllipse(QRectF(14, 14, 36, 36))
-        p.setBrush(accent)
-
-        # Icon text
         p.setPen(QPen(QColor(ACCENT)))
         font = QFont()
-        font.setPointSizeF(18)
         font.setBold(True)
-        p.setFont(font)
-        p.drawText(QRectF(14, 14, 36, 36), Qt.AlignmentFlag.AlignCenter, "⬡")
-
-        if not self._collapsed:
-            # App name
-            p.setPen(QPen(QColor(TEXT)))
-            font.setPointSizeF(14)
-            font.setBold(True)
+        if self._collapsed:
+            font.setPointSizeF(15)
             p.setFont(font)
-            p.drawText(QRectF(58, 10, w - 66, 24),
+            p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "HW")
+        else:
+            font.setPointSizeF(16)
+            p.setFont(font)
+            p.drawText(QRectF(22, 0, w - 30, h),
                        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                        "HWSonnet")
-            # Tagline
-            p.setPen(QPen(QColor(TEXT_MUTED)))
-            font.setPointSizeF(9)
-            font.setBold(False)
-            p.setFont(font)
-            p.drawText(QRectF(58, 36, w - 66, 16),
-                       Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                       "System Info")
 
 
 class _CollapseButton(QWidget):

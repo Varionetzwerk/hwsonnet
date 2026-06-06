@@ -26,6 +26,7 @@ class InfoCard(QWidget):
         subtitle: str = "",
         accent: str = ACCENT,
         icon: str = "",
+        value_color: str | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -61,7 +62,7 @@ class InfoCard(QWidget):
         # Value
         self._value_label = QLabel(value)
         self._value_label.setStyleSheet(
-            f"color: {TEXT}; font-size: 20px; font-weight: 700; "
+            f"color: {value_color or TEXT}; font-size: 20px; font-weight: 700; "
             "background: transparent; letter-spacing: -0.3px;"
         )
         layout.addWidget(self._value_label)

@@ -42,7 +42,6 @@ class Partition:
 class StorageInfo:
     devices: list[DiskDevice] = field(default_factory=list)
     partitions: list[Partition] = field(default_factory=list)
-    _prev_io: dict = field(default_factory=dict)
 
 
 class StorageCollector:

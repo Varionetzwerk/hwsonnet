@@ -2,6 +2,7 @@
 
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 
@@ -23,7 +24,12 @@ def setup_logger(name: str = "hwsonnet", level: int = logging.INFO) -> logging.L
 
     log_dir = Path.home() / ".local" / "share" / "hwsonnet"
     log_dir.mkdir(parents=True, exist_ok=True)
-    fh = logging.FileHandler(log_dir / "hwsonnet.log")
+    fh = RotatingFileHandler(
+        log_dir / "hwsonnet.log",
+        maxBytes=1_000_000,
+        backupCount=3,
+        encoding="utf-8",
+    )
     fh.setFormatter(fmt)
     logger.addHandler(fh)
 

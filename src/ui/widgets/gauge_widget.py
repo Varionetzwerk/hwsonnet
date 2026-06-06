@@ -41,6 +41,8 @@ class GaugeWidget(QWidget):
         unit: str = "%",
         max_value: float = 100.0,
         color: str = "#4d9eff",
+        style: str = "full",
+        card: bool = False,
         parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
@@ -49,6 +51,8 @@ class GaugeWidget(QWidget):
         self._max = max_value
         self._color = QColor(color)
         self._value: float = 0.0
+        self._style = style   # "full" (270° dial) or "semi" (180° arc)
+        self._card = card     # draw rounded card background
 
         self.setMinimumSize(130, 130)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -73,6 +77,21 @@ class GaugeWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+
+        if self._card:
+            rect = QRectF(self.rect().adjusted(0, 0, -1, -1))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(SURFACE_2))
+            painter.drawRoundedRect(rect, 14, 14)
+            border = QColor(BORDER)
+            border.setAlpha(140)
+            painter.setPen(QPen(border, 1))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(rect, 14, 14)
+
+        if self._style == "semi":
+            self._paint_semi(painter)
+            return
 
         w, h = self.width(), self.height()
         size = min(w, h)
@@ -179,6 +198,86 @@ class GaugeWidget(QWidget):
             painter.drawText(
                 QRectF(0, h - 26, w, 22),
                 Qt.AlignmentFlag.AlignCenter, self._title,
+            )
+
+    # ── Semicircle (180°) variant ─────────────────────────────────────── #
+
+    def _paint_semi(self, painter: QPainter) -> None:
+        w, h = self.width(), self.height()
+        pad = 22
+        label_h = 24 if self._title else 0
+
+        baseline = (h - label_h) * 0.66
+        r = min((w - 2 * pad) / 2, baseline - pad)
+        if r <= 0:
+            return
+        cx = w / 2
+        cy = baseline
+        arc_rect = QRectF(cx - r, cy - r, 2 * r, 2 * r)
+        thickness = max(10, int(r / 4.5))
+
+        ratio = self._value / self._max if self._max else 0.0
+        start = 180
+        span = 180
+        sweep = ratio * span
+
+        # Track (top half, left→right over the top)
+        painter.setPen(QPen(QColor(SURFACE_3), thickness,
+                            Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        painter.drawArc(arc_rect, start * 16, int(-span * 16))
+
+        if sweep > 0:
+            for glow_i in range(3, 0, -1):
+                glow_c = QColor(self._color)
+                glow_c.setAlpha(12 * glow_i)
+                painter.setPen(QPen(glow_c, thickness + glow_i * 4,
+                                    Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+                painter.drawArc(arc_rect, start * 16, int(-sweep * 16))
+
+            painter.setPen(QPen(self._color, thickness,
+                                Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+            painter.drawArc(arc_rect, start * 16, int(-sweep * 16))
+
+            tip_rad = math.radians(start - sweep)
+            tip_x = cx + r * math.cos(tip_rad)
+            tip_y = cy - r * math.sin(tip_rad)
+            tip_r = thickness / 2
+            glow = QColor(self._color)
+            glow.setAlpha(70)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(glow)
+            painter.drawEllipse(QPointF(tip_x, tip_y), tip_r + 3, tip_r + 3)
+            painter.setBrush(self._color)
+            painter.drawEllipse(QPointF(tip_x, tip_y), tip_r, tip_r)
+
+        # Center value (number + unit inline, e.g. "42%", "58°C")
+        if self._unit == "%":
+            val_str = f"{self._value:.0f}%"
+        elif self._unit == "°C":
+            val_str = f"{self._value:.0f}°C"
+        else:
+            val_str = f"{self._value:.0f}{self._unit}"
+
+        painter.setPen(QPen(QColor(TEXT)))
+        font = QFont()
+        font.setPointSizeF(max(13, r / 2.6))
+        font.setBold(True)
+        font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, -0.5)
+        painter.setFont(font)
+        painter.drawText(
+            QRectF(cx - r, cy - r * 0.72, 2 * r, r * 0.78),
+            Qt.AlignmentFlag.AlignCenter, val_str,
+        )
+
+        # Label below the arc
+        if self._title:
+            painter.setPen(QPen(QColor(TEXT_SUB)))
+            font.setPointSizeF(11)
+            font.setBold(False)
+            painter.setFont(font)
+            painter.drawText(
+                QRectF(0, cy + 6, w, h - cy - 6),
+                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop, self._title,
             )
 
 

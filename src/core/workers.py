@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import time
 from typing import Any, Callable
 
@@ -100,7 +101,9 @@ class AllDataWorker(QThread):
             for name, (data, fn) in self._collectors.items():
                 try:
                     fn(data)
-                    snapshot[name] = data
+                    # Deep-copy so the GUI thread reads a stable snapshot while
+                    # this thread keeps mutating the working objects in place.
+                    snapshot[name] = copy.deepcopy(data)
                 except Exception as exc:
                     logger.debug("Collector '%s' error: %s", name, exc)
             self.snapshot_ready.emit(snapshot)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -33,6 +33,7 @@ class GPUCollector:
     """Collects GPU hardware information from multiple backends."""
 
     def __init__(self) -> None:
+        self._amd_card: Optional[Path] = None
         self._backend: str = self._detect_backend()
         logger.info("GPU backend: %s", self._backend)
 
@@ -64,11 +65,12 @@ class GPUCollector:
         except (FileNotFoundError, subprocess.SubprocessError):
             pass
 
-        for card in Path("/sys/class/drm").glob("card?"):
+        for card in sorted(Path("/sys/class/drm").glob("card?")):
             vendor_file = card / "device" / "vendor"
             if vendor_file.exists():
                 vendor_id = vendor_file.read_text().strip()
                 if vendor_id == "0x1002":
+                    self._amd_card = card
                     return "amd"
                 if vendor_id == "0x8086":
                     return "intel"
@@ -120,17 +122,9 @@ class GPUCollector:
 
     def _collect_amd(self, info: GPUInfo) -> None:
         info.vendor = "AMD"
-        for card in Path("/sys/class/drm").glob("card?"):
-            vendor_file = card / "device" / "vendor"
-            if not vendor_file.exists():
-                continue
-            if vendor_file.read_text().strip() != "0x1002":
-                continue
-
-            self._read_amd_card(info, card)
-            break
-
-    def _read_amd_card(self, info: GPUInfo, card: Path) -> None:
+        card = self._amd_card
+        if card is None:
+            return
         dev = card / "device"
 
         product = dev / "product_name"
@@ -149,48 +143,33 @@ class GPUCollector:
                 pass
 
         vram_total = dev / "mem_info_vram_total"
-        vram_used = dev / "mem_info_vram_used"
         if vram_total.exists():
             info.vram_total_mb = int(vram_total.read_text().strip()) / 1024 / 1024
-        if vram_used.exists():
-            info.vram_used_mb = int(vram_used.read_text().strip()) / 1024 / 1024
-
-        busy = dev / "gpu_busy_percent"
-        if busy.exists():
-            info.utilization = float(busy.read_text().strip())
 
         self._collect_amd_dynamic(info)
 
-        try:
-            import psutil
-            for hw_name, entries in psutil.sensors_temperatures().items():
-                if "amdgpu" in hw_name or "radeon" in hw_name:
-                    info.temperature = entries[0].current
-                    break
-        except Exception:
-            pass
-
     def _collect_amd_dynamic(self, info: GPUInfo) -> None:
-        for card in Path("/sys/class/drm").glob("card?"):
-            dev = card / "device"
-            if not (dev / "vendor").exists():
-                continue
-            if (dev / "vendor").read_text().strip() != "0x1002":
-                continue
-            busy = dev / "gpu_busy_percent"
-            if busy.exists():
-                try:
-                    info.utilization = float(busy.read_text().strip())
-                except ValueError:
-                    pass
-            vram_used = dev / "mem_info_vram_used"
-            if vram_used.exists():
-                try:
-                    info.vram_used_mb = int(vram_used.read_text().strip()) / 1024 / 1024
-                except ValueError:
-                    pass
-            break
+        card = self._amd_card
+        if card is None:
+            return
+        dev = card / "device"
 
+        busy = dev / "gpu_busy_percent"
+        if busy.exists():
+            try:
+                info.utilization = float(busy.read_text().strip())
+            except ValueError:
+                pass
+        vram_used = dev / "mem_info_vram_used"
+        if vram_used.exists():
+            try:
+                info.vram_used_mb = int(vram_used.read_text().strip()) / 1024 / 1024
+            except ValueError:
+                pass
+
+        self._read_amd_temperature(info)
+
+    def _read_amd_temperature(self, info: GPUInfo) -> None:
         try:
             import psutil
             for hw_name, entries in psutil.sensors_temperatures().items():

@@ -77,7 +77,7 @@ class SensorsCollector:
                             chip=chip_name,
                         )
                     )
-        except (AttributeError, Exception) as exc:
+        except Exception as exc:
             logger.debug("Temperature sensor error: %s", exc)
         return sensors
 
@@ -94,7 +94,7 @@ class SensorsCollector:
                             chip=chip_name,
                         )
                     )
-        except (AttributeError, Exception) as exc:
+        except Exception as exc:
             logger.debug("Fan sensor error: %s", exc)
         return fans
 
@@ -110,5 +110,5 @@ class SensorsCollector:
                 seconds_left=bat.secsleft if bat.secsleft not in (-1, -2) else None,
                 status=status,
             )
-        except (AttributeError, Exception):
+        except Exception:
             return None
