@@ -76,8 +76,10 @@ push_aur() {
         info "Updating pkgver to $ver in PKGBUILD..."
         sed -i "s/^pkgver=.*/pkgver=$ver/" "$PKGBUILD"
         sed -i "s/^	pkgver =.*/	pkgver = $ver/" "$SRCINFO"
-        sed -i "s/#tag=v[0-9.]*/\#tag=v$ver/" "$PKGBUILD"
-        sed -i "s/#tag=v[0-9.]*/\#tag=v$ver/" "$SRCINFO"
+        # The PKGBUILD source uses #tag=v${pkgver}, so the tag follows pkgver
+        # automatically — no separate edit needed. Only the expanded .SRCINFO
+        # (used as a fallback when makepkg is unavailable) needs the literal tag.
+        sed -i "s/#tag=v[0-9.]*/#tag=v$ver/" "$SRCINFO"
         ok "PKGBUILD pkgver → $ver"
     fi
 
